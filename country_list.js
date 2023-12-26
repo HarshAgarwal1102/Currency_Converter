@@ -1,4 +1,4 @@
-let country_list = {
+const countryList = {
     "AED" : "AE",
     "AFN" : "AF",
     "XCD" : "AG",
