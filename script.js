@@ -1,75 +1,59 @@
-const dropList = document.querySelectorAll("form select"),
-  fromCurrency = document.querySelector(".from select"),
-  toCurrency = document.querySelector(".to select"),
-  getButton = document.querySelector("form button"),
-  exchangeRateTxt = document.querySelector(".exchange-rate");
+const BASE_URL =
+  "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies";
 
-for (let i = 0; i < dropList.length; i++) {
-  for (let currency_code in country_list) {
-    let selected =
-      i === 0
-        ? currency_code === "USD"
-          ? "selected"
-          : ""
-        : currency_code === "INR"
-        ? "selected"
-        : "";
-    let optionTag = `<option value="${currency_code}" ${selected}>${currency_code}</option>`;
-    dropList[i].insertAdjacentHTML("beforeend", optionTag);
+const dropdowns = document.querySelectorAll(".dropdown select");
+const btn = document.querySelector("form button");
+const fromCurr = document.querySelector(".from select");
+const toCurr = document.querySelector(".to select");
+const msg = document.querySelector(".msg");
+
+for (let select of dropdowns) {
+  for (currCode in countryList) {
+    let newOption = document.createElement("option");
+    newOption.innerText = currCode;
+    newOption.value = currCode;
+    if (select.name === "from" && currCode === "USD") {
+      newOption.selected = "selected";
+    } else if (select.name === "to" && currCode === "INR") {
+      newOption.selected = "selected";
+    }
+    select.append(newOption);
   }
-  dropList[i].addEventListener("change", (e) => {
-    loadFlag(e.target);
+
+  select.addEventListener("change", (evt) => {
+    updateFlag(evt.target);
   });
 }
 
-function loadFlag(element) {
-  for (let code in country_list) {
-    if (code === element.value) {
-      let imgTag = element.parentElement.querySelector("img");
-      imgTag.src = `https://flagcdn.com/48x36/${country_list[code].toLowerCase()}.png`;
-    }
+const updateExchangeRate = async () => {
+  let amount = document.querySelector(".amount input");
+  let amtVal = amount.value;
+  if (amtVal === "" || amtVal < 1) {
+    amtVal = 1;
+    amount.value = "1";
   }
-}
+  const URL = `${BASE_URL}/${fromCurr.value.toLowerCase()}/${toCurr.value.toLowerCase()}.json`;
+  let response = await fetch(URL);
+  let data = await response.json();
+  let rate = data[toCurr.value.toLowerCase()];
+
+  let finalAmount = amtVal * rate;
+  msg.innerText = `${amtVal} ${fromCurr.value} = ${finalAmount} ${toCurr.value}`;
+};
+
+const updateFlag = (element) => {
+  let currCode = element.value;
+  let countryCode = countryList[currCode];
+  let newSrc = `https://flagsapi.com/${countryCode}/flat/64.png`;
+  let img = element.parentElement.querySelector("img");
+  img.src = newSrc;
+};
+
+btn.addEventListener("click", (evt) => {
+  evt.preventDefault();
+  updateExchangeRate();
+});
 
 window.addEventListener("load", () => {
-  getExchangeRate();
+  updateExchangeRate();
 });
-
-getButton.addEventListener("click", (e) => {
-  e.preventDefault();
-  getExchangeRate();
-});
-
-const exchangeIcon = document.querySelector("form .icon");
-exchangeIcon.addEventListener("click", () => {
-  let tempCode = fromCurrency.value;
-  fromCurrency.value = toCurrency.value;
-  toCurrency.value = tempCode;
-  loadFlag(fromCurrency);
-  loadFlag(toCurrency);
-  getExchangeRate();
-});
-
-function getExchangeRate() {
-  exchangeRateTxt.innerText = "Getting exchange rate...";
-
-  // Construct the URL with the proper base currency
-  const url = `https://v6.exchangerate-api.com/v6/33d923d521378eee1a446e3e/latest/${fromCurrency.value}`;
-
-  fetch(url)
-    .then((response) => response.json())
-    .then((result) => {
-      if (result.result === "success") {
-        const exchangeRate = result.conversion_rates[toCurrency.value];
-        const amountVal = parseFloat(document.getElementById("amountInput").value);
-        const totalExRate = (amountVal * exchangeRate).toFixed(2);
-
-        exchangeRateTxt.innerText = `${amountVal} ${fromCurrency.value} = ${totalExRate} ${toCurrency.value}`;
-      } else {
-        exchangeRateTxt.innerText = "Currency conversion not available";
-      }
-    })
-    .catch(() => {
-      exchangeRateTxt.innerText = "Something went wrong";
-    });
-}
